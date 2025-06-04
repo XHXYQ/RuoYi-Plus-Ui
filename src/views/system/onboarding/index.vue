@@ -1,26 +1,52 @@
 <template>
   <div class="p-4">
-    <el-card shadow="never" class="mb-4">
-      <el-row :gutter="10" justify="space-between" align="middle">
-        <el-col :span="20">
-          <el-form ref="queryFormRef" :model="queryParams" :inline="true">
-            <el-form-item>
-              <el-input v-model="queryParams.userName" placeholder="搜索员工" clearable @keyup.enter="handleQuery" />
-            </el-form-item>
-            <el-form-item>
-              <el-date-picker v-model="queryParams.expectedDate" type="date" placeholder="预计入职日期" value-format="YYYY-MM-DD" clearable />
-            </el-form-item>
-            <el-form-item>
-              <el-select v-model="queryParams.certificationFlag" placeholder="认证状态" clearable>
-                <el-option label="已认证" :value="1" />
-                <el-option label="未认证" :value="0" />
-              </el-select>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-              <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-            </el-form-item>
-          </el-form>
+        <!-- 顶部标题和链接区域 -->
+    <div class="flex items-center justify-between mb-2">
+      <div>
+        <div class="text-xl font-bold leading-tight">入职管理</div>
+        <div class="text-gray-500 text-sm">待入职员工（共{{ total }}人）</div>
+      </div>
+      <div class="text-sm space-x-4 text-blue-600">
+        <a href="#">设置新员工入职培训</a>
+        <span>|</span>
+        <a href="#">新员工欢迎公告</a>
+        <span>|</span>
+        <a href="#">查看最近入职的人</a>
+      </div>
+    </div>
+
+    <!-- 搜索栏区域 -->
+    <el-card shadow="hover" class="mb-2">
+      <el-row :gutter="10" justify="start" align="middle">
+        <el-col :span="2">
+          <el-input v-model="queryParams.userName" placeholder="搜索员工" clearable @keyup.enter="handleQuery" />
+        </el-col>
+        <el-col :span="2.2">
+          <el-date-picker v-model="queryParams.expectedDate" type="date" placeholder="预计入职日期" value-format="YYYY-MM-DD" clearable style="width: 100%;" />
+        </el-col>
+        <el-col :span="3">
+          <el-select v-model="queryParams.registrationForm" placeholder="入职登记表是否提交" clearable style="width: 100%;">
+            <el-option label="已提交" :value="1" />
+            <el-option label="未提交" :value="0" />
+          </el-select>
+        </el-col>
+        <el-col :span="3">
+          <el-select v-model="queryParams.certificationFlag" placeholder="实人认证" clearable style="width: 100%;">
+            <el-option label="已认证" :value="1" />
+            <el-option label="未认证" :value="0" />
+          </el-select>
+        </el-col>
+        <el-col :span="3">
+          <el-select v-model="queryParams.source" placeholder="选择来源" clearable style="width: 100%;">
+            <el-option label="Boss直聘" value="Boss直聘" />
+            <el-option label="智联招聘" value="智联招聘" />
+            <el-option label="58同城" value="58同城" />
+            <el-option label="内推" value="内推" />
+          </el-select>
+        </el-col>
+        <el-col :span="5">
+          <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+          <el-button icon="Refresh" @click="resetQuery">重置</el-button>
         </el-col>
         <el-col :span="4" class="text-right">
           <el-button type="primary" @click="handleAdd">办理入职</el-button>
@@ -28,9 +54,10 @@
       </el-row>
     </el-card>
 
-    <el-card shadow="never">
+    <!-- 表格区域 -->
+    <el-card shadow="hover">
       <el-table v-loading="loading" :data="onboardingList" @selection-change="handleSelectionChange">
-        <el-table-column type="selection" width="55" align="center" />
+        <el-table-column type="selection" width="50" align="center" />
         <el-table-column label="姓名" align="center" prop="userName" />
         <el-table-column label="部门" align="center">
           <template #default="scope">
@@ -38,31 +65,29 @@
           </template>
         </el-table-column>
         <el-table-column label="职位" align="center" prop="postId" />
-        <el-table-column label="预计入职日期" align="center" prop="expectedDate" width="180">
-          <template #default="scope">
-            <span>{{ parseTime(scope.row.expectedDate, '{y}-{m}-{d}') }}</span>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="来源" align="center" prop="source" />
-        <el-table-column label="认证状态" align="center" prop="certificationFlag">
-          <template #default="scope">
-            <span>{{ scope.row.certificationFlag === 1 ? '已认证' : '未认证' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="登记表" align="center" prop="registrationForm">
+        <el-table-column label="入职登记表" align="center" prop="registrationForm">
           <template #default="scope">
             <span>{{ scope.row.registrationForm ? '已提交' : '未提交' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
+        <el-table-column label="实人认证" align="center" prop="certificationFlag">
           <template #default="scope">
-            <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['system:onboarding:edit']"></el-button>
-            <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['system:onboarding:remove']"></el-button>
+            <span>{{ scope.row.certificationFlag === 1 ? '已认证' : '未认证' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="预计入职日期" align="center" prop="expectedDate">
+          <template #default="scope">
+            <span>{{ parseTime(scope.row.expectedDate, '{y}-{m}-{d}') }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="来源" align="center" prop="source" />
+        <el-table-column label="操作" align="center">
+          <template #default="scope">
+            <el-button type="primary" text @click="handleUpdate(scope.row)">编辑</el-button>
+            <el-button type="danger" text @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
-
       <pagination v-show="total > 0" :total="total" v-model:page="queryParams.pageNum" v-model:limit="queryParams.pageSize" @pagination="getList" />
     </el-card>
 
@@ -91,9 +116,15 @@
         <el-form-item label="职位" prop="postId">
           <el-input v-model="form.postId" placeholder="请输入入职职位ID" />
         </el-form-item>
-        <el-form-item label="备注" prop="remark">
-          <el-input v-model="form.remark" type="textarea" placeholder="请输入备注" />
+        <el-form-item label="入职来源" prop="source">
+          <el-select v-model="form.source" placeholder="请选择入职来源">
+            <el-option label="Boss直聘" value="Boss直聘" />
+            <el-option label="智联招聘" value="智联招聘" />
+            <el-option label="58同城" value="58同城" />
+            <el-option label="内推" value="内推" />
+          </el-select>
         </el-form-item>
+
       </el-form>
       <template #footer>
         <el-button @click="cancel">取消</el-button>
