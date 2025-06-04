@@ -337,19 +337,6 @@ const handleExport = () => {
   }, `regularApplication_${new Date().getTime()}.xlsx`)
 }
 
-/** 撤销流程申请 */
-const handleCancelProcessApply = async (id: string) => {
-  await proxy?.$modal.confirm('是否确认撤销当前转正申请？');
-  loading.value = true;
-  const data = {
-    businessId: id,
-    message: '申请人撤销流程！'
-  };
-  await cancelProcessApply(data).finally(() => (loading.value = false));
-  await getList();
-  proxy?.$modal.msgSuccess('撤销成功');
-}
-
 onMounted(() => {
   getList();
 });

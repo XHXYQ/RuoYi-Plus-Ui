@@ -1,6 +1,6 @@
 import request from '@/utils/request';
 import { AxiosPromise } from 'axios';
-import { RegularApplicationVO, RegularApplicationForm, RegularApplicationQuery } from '@/api/workflow/application/types';
+import { RegularApplicationVO, RegularApplicationForm, RegularApplicationQuery } from '@/api/workflow/regularApplication/types';
 
 /**
  * 查询转正申请列表

@@ -224,6 +224,40 @@ export const dynamicRoutes: RouteRecordRaw[] = [
     ]
   },
   {
+    path: '/workflow/applicationEdit',
+    component: Layout,
+    hidden: true,
+    permissions: ['workflow:application:edit'],
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/workflow/application/applicationEdit.vue'),
+        name: 'application',
+        meta: { title: '转正申请', activeMenu: '/workflow/application', noCache: true }
+      }
+      // {
+      //   path: 'applicationEdit',
+      //   component: () => import('@/views/workflow/application/applicationEdit.vue'),
+      //   name: 'applicationEdit',
+      //   meta: { title: '转正申请', activeMenu: '/workflow/application', noCache: true }
+      // }
+    ]
+  },
+  {
+    path: '/workflow/outgoingEdit',
+    component: Layout,
+    hidden: true,
+    permissions: ['workflow:outgoing:edit'],
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/workflow/outgoing/outgoingEdit.vue'),
+        name: 'outgoingEdit',
+        meta: { title: '外出申请', activeMenu: '/workflow/outgoing', noCache: true }
+      }
+    ]
+  },
+  {
     path: '/workflow/design',
     component: Layout,
     hidden: true,
