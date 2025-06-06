@@ -41,8 +41,8 @@
       </div>
       
       <div class="action-buttons">
-        <el-button v-hasPermi="['system:resign:add']" type="primary"  @click="handleAdd">办理离职</el-button>
         <el-button type="primary" plain @click="handleExport">导出</el-button>
+        <el-button v-hasPermi="['system:resign:add']" type="primary"  @click="handleAdd">办理离职</el-button>
       </div>
     </div>
 
@@ -55,7 +55,7 @@
         v-loading="loading"
         @selection-change="handleSelectionChange"
       >
-        <el-table-column type="selection" width="50" />
+        
         <el-table-column prop="name" label="姓名" min-width="120">
           <template #default="{ row }">
             <div class="name-cell">

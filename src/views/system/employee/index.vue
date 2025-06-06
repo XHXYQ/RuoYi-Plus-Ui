@@ -1,305 +1,387 @@
 <template>
-  <div class="employee-management">
-    <!-- 统计卡片 -->
-    <div class="stats-card">
-      <div class="stats-container">
-        <div class="stats-row">
-          <div class="stat-item highlight">
-            <div class="label">在职员工</div>
-            <div class="count">{{ statsData.total }}</div>
-          </div>
-          <el-divider direction="vertical" class="divider" />
-          <div class="stat-item">
-            <div class="label">全职</div>
-            <div class="count">{{ statsData.fullTime }}</div>
-          </div>
-          <div class="stat-item">
-            <div class="label">兼职</div>
-            <div class="count">{{ statsData.partTime }}</div>
-          </div>
-          <div class="stat-item">
-            <div class="label">实习</div>
-            <div class="count">{{ statsData.intern }}</div>
-          </div>
-          <div class="stat-item">
-            <div class="label">劳务派遣</div>
-            <div class="count">{{ statsData.dispatch }}</div>
-          </div>
-          <div class="stat-item warning">
-            <div class="label">无类型</div>
-            <div class="count">{{ statsData.noType }}</div>
-          </div>
-          <el-divider direction="vertical" class="divider" />
-          <div class="stat-item">
-            <div class="label">试用</div>
-            <div class="count">{{ statsData.probation }}</div>
-          </div>
-          <div class="stat-item">
-            <div class="label">正式</div>
-            <div class="count">{{ statsData.formal }}</div>
-          </div>
-          <div class="stat-item">
-            <div class="label">待离职</div>
-            <div class="count">{{ statsData.pendingLeave }}</div>
-          </div>
-          <div class="stat-item">
-            <div class="label">无状态</div>
-            <div class="count">{{ statsData.noStatus }}</div>
+  <div class="app-container">
+   
+    <!-- 主内容区 -->
+    <div class="main-content">
+      <!-- 统计卡片 -->
+      <div class="stats-card">
+        <div class="stats-container">
+          <div class="stats-row">
+            <div 
+              class="stat-item highlight" 
+              :class="{ active: activeStat === 'total' }"
+              @click="handleStatClick('total')"
+            >
+              <div class="label">在职员工</div>
+              <div class="count">{{ statsData.total }}</div>
+            </div>
+            <el-divider direction="vertical" class="divider" />
+            <div 
+              class="stat-item" 
+              :class="{ active: activeStat === 'fullTime' }"
+              @click="handleStatClick('fullTime')"
+            >
+              <div class="label">全职</div>
+              <div class="count">{{ statsData.fullTime }}</div>
+            </div>
+            <div 
+              class="stat-item" 
+              :class="{ active: activeStat === 'partTime' }"
+              @click="handleStatClick('partTime')"
+            >
+              <div class="label">兼职</div>
+              <div class="count">{{ statsData.partTime }}</div>
+            </div>
+            <div 
+              class="stat-item" 
+              :class="{ active: activeStat === 'intern' }"
+              @click="handleStatClick('intern')"
+            >
+              <div class="label">实习</div>
+              <div class="count">{{ statsData.intern }}</div>
+            </div>
+            <div 
+              class="stat-item" 
+              :class="{ active: activeStat === 'dispatch' }"
+              @click="handleStatClick('dispatch')"
+            >
+              <div class="label">劳务派遣</div>
+              <div class="count">{{ statsData.dispatch }}</div>
+            </div>
+            <div 
+              class="stat-item warning" 
+              :class="{ active: activeStat === 'noType' }"
+              @click="handleStatClick('noType')"
+            >
+              <div class="label">无类型</div>
+              <div class="count">{{ statsData.noType }}</div>
+            </div>
+            <el-divider direction="vertical" class="divider" />
+            <div 
+              class="stat-item" 
+              :class="{ active: activeStat === 'probation' }"
+              @click="handleStatClick('probation')"
+            >
+              <div class="label">试用</div>
+              <div class="count">{{ statsData.probation }}</div>
+            </div>
+            <div 
+              class="stat-item" 
+              :class="{ active: activeStat === 'formal' }"
+              @click="handleStatClick('formal')"
+            >
+              <div class="label">正式</div>
+              <div class="count">{{ statsData.formal }}</div>
+            </div>
+            <div 
+              class="stat-item" 
+              :class="{ active: activeStat === 'pendingLeave' }"
+              @click="handleStatClick('pendingLeave')"
+            >
+              <div class="label">待离职</div>
+              <div class="count">{{ statsData.pendingLeave }}</div>
+            </div>
+            <div 
+              class="stat-item" 
+              :class="{ active: activeStat === 'noStatus' }"
+              @click="handleStatClick('noStatus')"
+            >
+              <div class="label">无状态</div>
+              <div class="count">{{ statsData.noStatus }}</div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 操作区域 -->
-    <div class="action-section">
-      <div class="filter-area">
-        <el-input
-          v-model="searchQuery"
-          placeholder="搜索员工"
-          class="search-input"
-          clearable
-          @keyup.enter="handleSearch"
-          @clear="handleSearch"
-        >
-          <template #prefix>
-            <el-icon><search /></el-icon>
-          </template>
-        </el-input>
-
-        <el-select
-          v-model="filterValue"
-          placeholder="实人认证"
-          class="filter-select"
-        >
-          <el-option
-            v-for="item in filterOptions"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
-          />
-        </el-select>
-        <el-button>
-          <el-icon><filter /></el-icon>
-          高级筛选
-        </el-button>
-      </div>
-      
-      <div class="action-buttons">
-        <el-button type="primary" @click="handleAdd">添加员工</el-button>
-        <el-button>邀请认证</el-button>
-        <el-button type="primary" plain>导出</el-button>
-        <el-button type="primary" @click="handleImport">导入花名册</el-button>
-      </div>
-    </div>
-
-    <!-- 员工表格 -->
-    <div class="employee-table">
-      <el-table 
-        :data="employeeData" 
-        style="width: 100%"
-        stripe
-        :header-cell-style="{background:'#f5f7fa',color:'#606266'}"
-        v-loading="loading"
-      >
-        <el-table-column width="50">
-          <template #default="{ row }">
-            <el-checkbox v-model="row.checked" />
-          </template>
-        </el-table-column>
-        <el-table-column prop="name" label="姓名" min-width="120">
-          <template #default="{ row }">
-            <div class="name-cell">
-              <div class="rect-avatar">
-                <img v-if="row.avatar" :src="row.avatar" />
-                <el-icon v-else><User /></el-icon>
-              </div>
-              <span>{{ row.name }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="deptName" label="部门">
-          <template #default="{ row }">
-            {{ getDeptNameById(row.deptId) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="position" label="职位" min-width="120" />
-        <el-table-column prop="startDate" label="入职时间" min-width="120">
-          <template #default="{ row }">
-            {{ formatDate(row.startDate) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="employeeType" label="员工类型" min-width="120" />
-        <el-table-column prop="statusType" label="状态" min-width="120" />
-        <el-table-column prop="phonenumber" label="手机号" min-width="150">
-          <template #default="{ row }">
-            {{ (row.phonenumber) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
-          <template #header>
-            <span>操作</span>
-            <el-icon class="setting-icon"><setting /></el-icon>
-          </template>
-          <template #default="{ row }">
-            <el-button type="text" @click="handleEdit(row)">编辑</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-      
-      
-    </div>
-
-    <!-- 添加员工弹窗 -->
-    <el-dialog
-      v-model="addDialogVisible"
-      title="添加员工"
-      width="50%"
-      :close-on-click-modal="false"
-    >
-      <div class="avatar-upload">
-        <el-upload
-          class="avatar-uploader"
-          action="/api/upload"
-          :show-file-list="false"
-          :on-success="handleAvatarSuccess"
-          :before-upload="beforeAvatarUpload">
-          <img v-if="addForm.avatar" :src="addForm.avatar" class="avatar">
-          <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
-        </el-upload>
-        <div class="upload-tip">点击上传员工头像</div>
-      </div>
-      <el-form 
-        :model="addForm" 
-        label-width="100px"
-        :rules="formRules"
-        ref="addFormRef"
-      >
-        <el-col :span="12">
-          <el-form-item label="用户昵称" prop="nickName">
-            <el-input v-model="addForm.nickName" placeholder="请输入用户昵称" maxlength="30" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item v-if="addForm.userId == undefined" label="用户名称" prop="userName">
-            <el-input v-model="addForm.userName" placeholder="请输入用户名称" maxlength="30" />
-          </el-form-item>
-        </el-col>
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="addForm.name" placeholder="请输入姓名" />
-        </el-form-item>
-        <el-form-item label="部门" prop="deptId">
-          <el-tree-select
-            v-model="addForm.deptId"
-            :data="deptOptions"
-            :props="{ value: 'deptId', label: 'deptName', children: 'children' }"
-            placeholder="选择部门"
-            check-strictly
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="职位" prop="position">
-          <el-input v-model="addForm.position" placeholder="请输入职位" />
-        </el-form-item>
-        <el-form-item label="入职时间" prop="startDate">
-          <el-date-picker
-            v-model="addForm.startDate"
-            type="date"
-            placeholder="选择入职日期"
-            style="width: 100%"
-            value-format="YYYY-MM-DD"
-          />
-        </el-form-item>
-        <el-form-item label="员工类型" prop="employeeType">
-          <el-select v-model="addForm.employeeType" placeholder="请选择员工类型" style="width: 100%">
-            <el-option label="全职" value="全职" />
-            <el-option label="兼职" value="兼职" />
-            <el-option label="实习" value="实习" />
-            <el-option label="劳务派遣" value="劳务派遣" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态" prop="statusType">
-          <el-select v-model="addForm.statusType" placeholder="请选择状态" style="width: 100%">
-            <el-option label="试用" value="试用" />
-            <el-option label="正式" value="正式" />
-            <el-option label="待离职" value="待离职" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="手机号码" prop="phonenumber">
-          <el-input v-model="addForm.phonenumber" placeholder="请输入手机号码" />
-        </el-form-item>
-      </el-form>
-      
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="addDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleConfirmAdd" :loading="submitLoading">
-            添加员工到花名册
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
-
-    <!-- 导入员工弹窗 -->
-    <el-dialog
-      v-model="importDialogVisible"
-      title="批量添加新员工"
-      width="600px"
-      :close-on-click-modal="false"
-    >
-      <div class="import-container">
-        <div class="import-step">
-          <div class="step-header">
-            <div class="step-number">1</div>
-            <div class="step-title">下载模板，填写内容</div>
-          </div>
-          <el-button 
-            type="primary" plain
-            @click="downloadTemplate"
+      <!-- 操作区域 -->
+      <div class="action-section">
+        <div class="filter-area">
+          <el-input
+            v-model="searchQuery"
+            placeholder="搜索员工"
+            class="search-input"
+            clearable
+            @keyup.enter="handleSearch"
+            @clear="handleSearch"
           >
-            下载模板
+            <template #prefix>
+              <el-icon><search /></el-icon>
+            </template>
+          </el-input>
+
+          <el-select
+            v-model="filterValue"
+            placeholder="实人认证"
+            class="filter-select"
+          >
+            <el-option
+              v-for="item in filterOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+          <el-button>
+            <el-icon><filter /></el-icon>
+            高级筛选
           </el-button>
         </div>
         
-        <div class="import-step">
-          <div class="step-header">
-            <div class="step-number">2</div>
-            <div class="step-title">导入模板</div>
-          </div>
-          
-          <div class="step-tips">
-            <p>·单次最多导入2000人，超出请分批上传</p>
-            <p>·若导入的花名册中有「部门」字段，导入后「部门」字段不生效</p>
-          </div>
-          
-          <el-upload
-            class="upload-area"
-            drag
-            action=""
-            :auto-upload="false"
-            :show-file-list="false"
-            :on-change="handleFileChange"
-          >
-            <div class="upload-content">
-              <el-icon class="upload-icon"><upload /></el-icon>
-              <div class="upload-text">拖拽文件到这里上传</div>
-              <el-button type="primary" @click="triggerUpload" style="margin-top: 10px;">选择文件</el-button>
-            </div>
-          </el-upload>
-          
-          <div class="upload-actions">
-            <el-button @click="importDialogVisible = false">取消</el-button>
-          </div>
+        <div class="action-buttons">
+          <el-button @click="handleAdd">添加员工</el-button>
+          <el-button>邀请认证</el-button>
+          <el-button type="primary" plain>导出</el-button>
+          <el-button type="primary" @click="handleImport">导入花名册</el-button>
         </div>
       </div>
-    </el-dialog>
+
+      <!-- 员工表格 -->
+      <div class="employee-table">
+        <el-table 
+          :data="employeeData" 
+          style="width: 100%"
+          stripe
+          :header-cell-style="{background:'#f5f7fa',color:'#606266'}"
+          v-loading="loading"
+        >
+          <el-table-column type="selection" width="50" />
+          <el-table-column prop="name" label="姓名" min-width="120">
+            <template #default="{ row }">
+              <div class="name-cell">
+                <div class="rect-avatar">
+                  <img v-if="row.avatar" :src="row.avatar" />
+                  <el-icon v-else><User /></el-icon>
+                </div>
+                <span>{{ row.name }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="deptName" label="部门" min-width="120">
+            <template #default="{ row }">
+              {{ getDeptNameById(row.deptId) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="position" label="职位" min-width="120" />
+          <el-table-column prop="startDate" label="入职时间" min-width="120">
+            <template #default="{ row }">
+              {{ formatDate(row.startDate) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="employeeType" label="员工类型" min-width="120">
+            <template #default="{ row }">
+                {{ row.employeeType }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="phonenumber" label="手机号" min-width="150">
+            <template #default="{ row }">
+              {{ formatPhone(row.phonenumber) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120" fixed="right">
+            <template #header>
+              <span>操作</span>
+              <el-icon class="setting-icon"><setting /></el-icon>
+            </template>
+            <template #default="{ row }">
+              <el-button type="text" @click="handleEdit(row)">编辑</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        
+        <!-- 分页 -->
+        <div class="pagination">
+          <el-pagination
+            v-model:current-page="pagination.pageNum"
+            v-model:page-size="pagination.pageSize"
+            :page-sizes="[10, 20, 30, 50]"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="pagination.total"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
+      </div>
+
+      <!-- 添加员工弹窗 -->
+      <el-dialog
+        v-model="addDialogVisible"
+        title="添加员工"
+        width="50%"
+        :close-on-click-modal="false"
+      >
+        <div class="avatar-upload">
+          <el-upload
+            class="avatar-uploader"
+            action="/api/upload"
+            :show-file-list="false"
+            :on-success="handleAvatarSuccess"
+            :before-upload="beforeAvatarUpload">
+            <img v-if="addForm.avatar" :src="addForm.avatar" class="avatar">
+            <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
+          </el-upload>
+          <div class="upload-tip">点击上传员工头像</div>
+        </div>
+        <el-form 
+          :model="addForm" 
+          label-width="100px"
+          :rules="formRules"
+          ref="addFormRef"
+        >
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="用户昵称" prop="nickName">
+                <el-input v-model="addForm.nickName" placeholder="请输入用户昵称" maxlength="30" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item v-if="addForm.userId == undefined" label="用户名称" prop="userName">
+                <el-input v-model="addForm.userName" placeholder="请输入用户名称" maxlength="30" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="姓名" prop="name">
+                <el-input v-model="addForm.name" placeholder="请输入姓名" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="部门" prop="deptId">
+                <el-tree-select
+                  v-model="addForm.deptId"
+                  :data="deptOptions"
+                  :props="{ value: 'deptId', label: 'deptName', children: 'children' }"
+                  placeholder="选择部门"
+                  check-strictly
+                  style="width: 100%"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="职位" prop="position">
+                <el-input v-model="addForm.position" placeholder="请输入职位" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="入职时间" prop="startDate">
+                <el-date-picker
+                  v-model="addForm.startDate"
+                  type="date"
+                  placeholder="选择入职日期"
+                  style="width: 100%"
+                  value-format="YYYY-MM-DD"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="员工类型" prop="employeeType">
+                <el-select v-model="addForm.employeeType" placeholder="请选择员工类型" style="width: 100%">
+                  <el-option label="全职" value="全职" />
+                  <el-option label="兼职" value="兼职" />
+                  <el-option label="实习" value="实习" />
+                  <el-option label="劳务派遣" value="劳务派遣" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="状态" prop="statusType">
+                <el-select v-model="addForm.statusType" placeholder="请选择状态" style="width: 100%">
+                  <el-option label="试用" value="试用" />
+                  <el-option label="正式" value="正式" />
+                  <el-option label="待离职" value="待离职" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          
+          <el-form-item label="手机号码" prop="phonenumber">
+            <el-input v-model="addForm.phonenumber" placeholder="请输入手机号码" />
+          </el-form-item>
+        </el-form>
+        
+        <template #footer>
+          <span class="dialog-footer">
+            <el-button @click="addDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="handleConfirmAdd" :loading="submitLoading">
+              添加员工到花名册
+            </el-button>
+          </span>
+        </template>
+      </el-dialog>
+
+      <!-- 导入员工弹窗 -->
+      <el-dialog
+        v-model="importDialogVisible"
+        title="批量添加新员工"
+        width="600px"
+        :close-on-click-modal="false"
+      >
+        <div class="import-container">
+          <div class="import-step">
+            <div class="step-header">
+              <div class="step-number">1</div>
+              <div class="step-title">下载模板，填写内容</div>
+            </div>
+            <el-button 
+              type="primary" plain
+              @click="downloadTemplate"
+            >
+              下载模板
+            </el-button>
+          </div>
+          
+          <div class="import-step">
+            <div class="step-header">
+              <div class="step-number">2</div>
+              <div class="step-title">导入模板</div>
+            </div>
+            
+            <div class="step-tips">
+              <p>·单次最多导入2000人，超出请分批上传</p>
+              <p>·若导入的花名册中有「部门」字段，导入后「部门」字段不生效</p>
+            </div>
+            
+            <el-upload
+              class="upload-area"
+              drag
+              action=""
+              :auto-upload="false"
+              :show-file-list="false"
+              :on-change="handleFileChange"
+            >
+              <div class="upload-content">
+                <el-icon class="upload-icon"><upload /></el-icon>
+                <div class="upload-text">拖拽文件到这里上传</div>
+                <el-button type="primary" @click="triggerUpload" style="margin-top: 10px;">选择文件</el-button>
+              </div>
+            </el-upload>
+            
+            <div class="upload-actions">
+              <el-button @click="importDialogVisible = false">取消</el-button>
+            </div>
+          </div>
+        </div>
+      </el-dialog>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
-import { Search, Filter, Upload, Setting, Plus, User } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { 
+  HomeFilled, Setting, Monitor, Menu, Document, 
+  List, User as UserIcon, Search, Filter, Upload, 
+  Setting as SettingIcon, Plus, User 
+} from '@element-plus/icons-vue'
 import { listDept } from '@/api/system/dept'
 import { 
   listEmployee,
@@ -323,7 +405,6 @@ const filterOptions = [
 ]
 
 // 表格相关
-
 const employeeData = ref<SysEmployeeVO[]>([])
 const loading = ref(false)
 const pagination = reactive({
@@ -335,7 +416,7 @@ const pagination = reactive({
 // 查询参数
 const queryParams = ref<SysEmployeeQuery>({
   pageNum: 1,
-  pageSize: 20
+  pageSize: 10
 })
 
 // 部门选项
@@ -360,29 +441,24 @@ const addForm = ref<SysEmployeeForm>({
   userName: ''
 })
 
-const statsData = reactive<EmployeeStatsVo>({
-  total: 0,
-  fullTime: 0,
-  partTime: 0,
-  intern: 0,
+// 统计卡片数据
+const statsData = reactive({
+  total: 18,
+  fullTime: 12,
+  partTime: 3,
+  intern: 3,
   dispatch: 0,
   noType: 0,
   probation: 0,
-  formal: 0,
+  formal: 18,
   pendingLeave: 0,
   noStatus: 0
-});
+})
 
-const loadStats = async () => {
-  try {
-    const res = await getEmployeeStats();
-    Object.assign(statsData, res.data);
-  } catch (error) {
-    console.error('获取统计数据失败:', error);
-    ElMessage.error('获取统计数据失败');
-  }
-};
+// 当前选中的统计项
+const activeStat = ref('total')
 
+// 表单验证规则
 const formRules = reactive({
   name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
   deptId: [{ required: true, message: '请选择部门', trigger: 'change' }],
@@ -395,7 +471,6 @@ const formRules = reactive({
   employeeType: [{ required: true, message: '请选择员工类型', trigger: 'change' }],
   statusType: [{ required: true, message: '请选择状态', trigger: 'change' }]
 })
-console.log('表单验证规则:', JSON.parse(JSON.stringify(formRules)))
 
 const addFormRef = ref()
 
@@ -415,34 +490,27 @@ const getList = async () => {
   loading.value = true
   try {
     const res = await listEmployee(queryParams.value)
-    console.log('API响应数据:', res)
     
-    // 处理分页格式的响应 { total, rows, code, msg }
     if (res && typeof res === 'object' && 'rows' in res) {
       employeeData.value = res.rows.map(item => ({
         ...item,
         checked: false
       }))
       pagination.total = res.total || 0
-    } 
-    // 处理其他可能的格式
-    else if (Array.isArray(res)) {
+    } else if (Array.isArray(res)) {
       employeeData.value = res.map(item => ({
         ...item,
         checked: false
       }))
       pagination.total = res.length
-    } 
-    // 处理 { data } 格式
-    else if (res?.data) {
+    } else if (res?.data) {
       const data = Array.isArray(res.data) ? res.data : []
       employeeData.value = data.map(item => ({
         ...item,
         checked: false
       }))
       pagination.total = res.total || data.length
-    }
-    else {
+    } else {
       console.warn('意外的API响应格式:', res)
       employeeData.value = []
       pagination.total = 0
@@ -456,6 +524,59 @@ const getList = async () => {
   }
 }
 
+// 统计项点击处理
+const handleStatClick = (statKey: string) => {
+  activeStat.value = statKey
+  queryParams.value.pageNum = 1
+  
+  switch(statKey) {
+    case 'total':
+      delete queryParams.value.employeeType
+      delete queryParams.value.statusType
+      break
+      
+    case 'fullTime':
+      queryParams.value.employeeType = '全职'
+      delete queryParams.value.statusType
+      break
+    case 'partTime':
+      queryParams.value.employeeType = '兼职'
+      delete queryParams.value.statusType
+      break
+    case 'intern':
+      queryParams.value.employeeType = '实习'
+      delete queryParams.value.statusType
+      break
+    case 'dispatch':
+      queryParams.value.employeeType = '劳务派遣'
+      delete queryParams.value.statusType
+      break
+    case 'noType':
+      queryParams.value.employeeType = ''
+      delete queryParams.value.statusType
+      break
+      
+    case 'probation':
+      queryParams.value.statusType = '试用'
+      delete queryParams.value.employeeType
+      break
+    case 'formal':
+      queryParams.value.statusType = '正式'
+      delete queryParams.value.employeeType
+      break
+    case 'pendingLeave':
+      queryParams.value.statusType = '待离职'
+      delete queryParams.value.employeeType
+      break
+    case 'noStatus':
+      queryParams.value.statusType = ''
+      delete queryParams.value.employeeType
+      break
+  }
+  
+  getList()
+}
+
 // 搜索员工
 const handleSearch = () => {
   clearTimeout(searchTimer.value)
@@ -463,10 +584,10 @@ const handleSearch = () => {
     queryParams.value = {
       ...queryParams.value,
       name: searchQuery.value,
-      pageNum: 1 // 重置到第一页
+      pageNum: 1
     }
-    getList() // 重新获取列表
-  }, 300) // 300ms防抖延迟
+    getList()
+  }, 300)
 }
 
 // 打开添加员工弹窗
@@ -499,12 +620,8 @@ const handleConfirmAdd = async () => {
     
     ElMessage.success('添加成功');
     addDialogVisible.value = false;
-    
-    // 同时刷新列表和统计数据
-    await Promise.all([
-      getList(), 
-      loadStats()  // 新增这行
-    ]);
+    getList();
+    loadStats();
     
   } catch (error) {
     console.error('添加失败', error);
@@ -523,6 +640,18 @@ const handleEdit = (row: SysEmployeeVO) => {
   })
 }
 
+// 分页大小改变
+const handleSizeChange = (val: number) => {
+  queryParams.value.pageSize = val
+  getList()
+}
+
+// 当前页改变
+const handleCurrentChange = (val: number) => {
+  queryParams.value.pageNum = val
+  getList()
+}
+
 // 格式化日期
 const formatDate = (date: string | Date) => {
   if (!date) return ''
@@ -536,7 +665,7 @@ const formatDate = (date: string | Date) => {
 // 格式化手机号
 const formatPhone = (phone: string) => {
   if (!phone) return ''
-  return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
+  return phone.replace()
 }
 
 // 根据ID获取部门名称
@@ -552,6 +681,28 @@ const getDeptNameById = (id: number) => {
   }
   return findDept(deptOptions.value) || '未知部门'
 }
+
+// 获取员工类型对应的标签样式
+const getEmployeeTypeTag = (type: string) => {
+  switch(type) {
+    case '全职': return ''
+    case '兼职': return 'info'
+    case '实习': return 'primary'
+    case '劳务派遣': return 'warning'
+    default: return 'info'
+  }
+}
+
+// 加载统计数据
+const loadStats = async () => {
+  try {
+    const res = await getEmployeeStats();
+    Object.assign(statsData, res.data);
+  } catch (error) {
+    console.error('获取统计数据失败:', error);
+    ElMessage.error('获取统计数据失败');
+  }
+};
 
 // 导入相关方法
 const handleImport = () => {
@@ -596,19 +747,45 @@ onMounted(() => {
   getDeptList()
   getList()
   loadStats()
-  // getEmployeeStats()
 })
 </script>
 
 <style scoped>
-.employee-management {
-  padding: 20px;
+.app-container {
+  display: flex;
+  min-height: 100vh;
   background-color: #f5f7fa;
   font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', Arial, sans-serif;
-  height: calc(100vh - 40px);
-  display: flex;
-  flex-direction: column;
+}
+
+.sidebar {
+  width: 210px;
+  background-color: #304156;
+  color: #bfcbd9;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.logo {
+  height: 50px;
+  line-height: 50px;
+  text-align: center;
+  color: #fff;
+  font-size: 20px;
+  font-weight: bold;
+  background-color: #2b2f3a;
+}
+
+.el-menu-vertical {
+  border-right: none;
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  height: 100vh;
 }
 
 .stats-card {
@@ -640,6 +817,32 @@ onMounted(() => {
   padding: 0 12px;
   min-width: 80px;
   flex: 1;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.stat-item:hover {
+  background-color: #f5f7fa;
+  border-radius: 4px;
+}
+
+.stat-item.active {
+  background-color: #ecf5ff;
+}
+
+.stat-item.active .label,
+.stat-item.active .count {
+  color: #409eff;
+  font-weight: bold;
+}
+
+.stat-item.warning.active {
+  background-color: #fef0f0;
+}
+
+.stat-item.warning.active .label,
+.stat-item.warning.active .count {
+  color: #f56c6c;
 }
 
 .stat-item .label {
