@@ -182,6 +182,20 @@ export const dynamicRoutes: RouteRecordRaw[] = [
     ]
   },
   {
+    path: '/system/resignEdit',
+    component: Layout,
+    hidden: true,
+    permissions: ['system:resign:edit'],
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/system/resign/resignEdit.vue'),
+        name: 'resignEdit',
+        meta: { title: '离职申请', activeMenu: '/system/resign', noCache: true }
+      }
+    ]
+  },
+  {
     path: '/workflow/leaveEdit',
     component: Layout,
     hidden: true,

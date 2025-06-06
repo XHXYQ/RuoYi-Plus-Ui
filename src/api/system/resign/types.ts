@@ -20,6 +20,7 @@ export interface SysResignForm {
   startDate?: Date;
   endDate?: Date;
   remark?: string;
+  status?: string;
 }
 
 /**
@@ -35,6 +36,7 @@ export interface SysResignVO {
   startDate?: string | Date;
   endDate?: string | Date;
   remark?: string;
+  status?: string;
 }
 
 export interface PageResult<T> {

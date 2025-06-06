@@ -41,7 +41,7 @@
       </div>
       
       <div class="action-buttons">
-        <el-button type="primary" @click="handleAdd">办理离职</el-button>
+        <el-button v-hasPermi="['system:resign:add']" type="primary"  @click="handleAdd">办理离职</el-button>
         <el-button type="primary" plain @click="handleExport">导出</el-button>
       </div>
     </div>
@@ -196,6 +196,8 @@ import {
 import { listDept } from '@/api/system/dept'
 import type { SysResignQuery, SysResignForm, SysResignVO } from '@/api/system/resign/types'
 
+const { proxy } = getCurrentInstance() as ComponentInternalInstance;
+
 // 查询参数
 const queryParams = reactive<SysResignQuery>({
   pageNum: 1,
@@ -228,7 +230,8 @@ const formData = reactive<SysResignForm>({
   employeeType: '',
   startDate: '',
   endDate: '',
-  remark: ''
+  remark: '',
+  status: undefined,
 })
 
 // 表单验证
@@ -309,10 +312,14 @@ const handleSelectionChange = (val: SysResignVO[]) => {
 
 // 打开添加弹窗
 const handleAdd = () => {
-  dialogTitle.value = '办理离职'
-  resetForm()
-  dialogVisible.value = true
-}
+  proxy.$tab.closePage(proxy.$route);
+  proxy.$router.push({
+    path: `/system/resignEdit/index`,
+    query: {
+      type: 'add'
+    }
+  });
+};
 
 // 重置表单
 const resetForm = () => {
