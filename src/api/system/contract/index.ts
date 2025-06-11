@@ -33,7 +33,7 @@ export function pageContract(params: {
   pageSize: number;
 }) {
   return request<{
-    rows: SysContractVo[]; // 直接返回 rows 和 total
+    rows: SysContractVO[]; // 直接返回 rows 和 total
     total: number;
   }>({
     url: '/system/contract/list',

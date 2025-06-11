@@ -182,6 +182,20 @@ export const dynamicRoutes: RouteRecordRaw[] = [
     ]
   },
   {
+    path: '/system/holidayEdit',
+    component: Layout,
+    hidden: true,
+    permissions: ['system:holiday:edit'],
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/system/holiday/holidayEdit.vue'),
+        name: 'holidayEdit',
+        meta: { title: '离职申请', activeMenu: '/system/holiday', noCache: true }
+      }
+    ]
+  },
+  {
     path: '/system/resignEdit',
     component: Layout,
     hidden: true,
