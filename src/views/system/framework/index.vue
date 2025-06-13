@@ -17,7 +17,7 @@
     </div>
 
     <el-row :gutter="20">
-      <!-- 左侧部门树 -->
+      <!-- 左侧树形部门结构 -->
       <el-col :span="6">
         <el-card shadow="hover">
           <el-tree
@@ -32,13 +32,10 @@
         </el-card>
       </el-col>
 
-      <!-- 右侧 GoJS 图表 -->
+      <!-- 右侧图表 -->
       <el-col :span="18">
         <el-card shadow="hover">
-          <div v-if="selectedDept">
-            <div id="gojs-container" style="width: 100%; height: 600px;"></div>
-          </div>
-          <div v-else class="empty-placeholder">请选择左侧部门查看结构</div>
+          <div id="g6-container" style="width: 100%; height: 600px;"></div>
         </el-card>
       </el-col>
     </el-row>
@@ -46,137 +43,147 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import * as go from 'gojs';
-import api from '@/api/system/user';
+import { ref, onMounted, nextTick } from 'vue'
+import G6 from '@antv/g6'
+import api from '@/api/system/user'
 
-const companyName = ref('陈伟伦合伙人事务所');
-const manager = ref('');
-const totalUserCount = ref(0);
-const deptOptions = ref<any[]>([]);
-const selectedDept = ref<any | null>(null);
-const deptTreeRef = ref();
+const companyName = ref('陈伟伦合伙人事务所')
+const manager = ref('')
+const totalUserCount = ref(0)
+const deptOptions = ref<any[]>([])
+const deptTreeRef = ref()
+const selectedDept = ref<any | null>(null)
+let graph: any = null
 
-let diagram: go.Diagram;
-
+// 获取组织结构和用户数据
 const getDeptTree = async () => {
   try {
     const [deptRes, userRes] = await Promise.all([
       api.deptTreeSelect(),
       api.listUser({ pageNum: 1, pageSize: 10000 })
-    ]);
+    ])
 
-    const deptUserCount: Record<number, number> = {};
+    const deptUserCount: Record<number, number> = {}
     userRes.rows.forEach((user: any) => {
       if (user.deptId) {
-        deptUserCount[user.deptId] = (deptUserCount[user.deptId] || 0) + 1;
+        deptUserCount[user.deptId] = (deptUserCount[user.deptId] || 0) + 1
       }
-    });
-    totalUserCount.value = userRes.total;
+    })
+    totalUserCount.value = userRes.total
 
-    const processDeptTree = (depts: any[]): any[] => {
-      return depts.map((dept: any) => {
-        const children = dept.children ? processDeptTree(dept.children) : [];
-        const totalCount = children.reduce((sum, child) => sum + (child.userCount || 0), 0) + (deptUserCount[dept.id] || 0);
+    const processTree = (depts: any[]): any[] => {
+      return depts.map(dept => {
+        const children = dept.children ? processTree(dept.children) : []
+        const total = children.reduce((sum, c) => sum + (c.userCount || 0), 0) + (deptUserCount[dept.id] || 0)
         return {
           ...dept,
-          userCount: totalCount,
+          userCount: total,
           label: dept.label,
-          children,
-          leader: dept.leader || ''
-        };
-      });
-    };
-
-    deptOptions.value = processDeptTree(deptRes.data);
-  } catch (e) {
-    console.error('获取组织结构失败', e);
-  }
-};
-
-const findDeptById = (list: any[], id: number): any | null => {
-  for (const item of list) {
-    if (item.id === id) return item;
-    if (item.children) {
-      const result = findDeptById(item.children, id);
-      if (result) return result;
+          leader: dept.leader || '',
+          children
+        }
+      })
     }
-  }
-  return null;
-};
 
+    deptOptions.value = processTree(deptRes.data)
+  } catch (err) {
+    console.error('组织结构获取失败', err)
+  }
+}
+
+// 构建以公司为根的树结构（初始图用）
+const buildTreeWithCompanyRoot = (): any => {
+  return {
+    id: 'root',
+    label: `${companyName.value}\n未设置主管\n部门人数：${totalUserCount.value}`,
+    children: deptOptions.value.map(buildSubTree)
+  }
+}
+
+// 构建任意节点为根的结构
+const buildSubTree = (node: any): any => {
+  return {
+    id: String(node.id),
+    label: `${node.label}\n主管：${node.leader || '未设置'}\n部门人数：${node.userCount ?? 0}`,
+    children: (node.children || []).map(buildSubTree)
+  }
+}
+
+// 渲染图：传入根节点结构
+const renderG6ChartFromNode = (rootNode: any) => {
+  const container = document.getElementById('g6-container')
+  if (!container) return
+
+  if (graph) {
+    graph.destroy()
+    graph = null
+  }
+
+  const data = buildSubTree(rootNode)
+
+  graph = new G6.TreeGraph({
+    container: 'g6-container',
+    width: container.clientWidth,
+    height: container.clientHeight,
+    modes: {
+      default: ['drag-canvas', 'zoom-canvas']
+    },
+    defaultNode: {
+      type: 'rect',
+      size: [200, 60],
+      anchorPoints: [
+        [0.5, 0], // 顶部输入
+        [0.5, 1]  // 底部输出
+      ],
+      style: {
+        fill: '#E3F2FD',
+        stroke: '#2196F3',
+        radius: 6
+      },
+      labelCfg: {
+        style: {
+          fill: '#333',
+          fontSize: 12,
+          textAlign: 'center',
+          lineHeight: 16
+        }
+      }
+    },
+    defaultEdge: {
+      type: 'cubic-vertical',
+      sourceAnchor: 1,
+      targetAnchor: 0,
+      style: {
+        stroke: '#999'
+      }
+    },
+    layout: {
+      type: 'compactBox',
+      direction: 'TB',
+      getId: d => d.id,
+      getHeight: () => 60,
+      getWidth: () => 200,
+      getVGap: () => 50,
+      getHGap: () => 40
+    }
+  })
+
+  graph.data(data)
+  graph.render()
+  graph.fitCenter() // ✅ 让图表居中
+}
+
+// 点击左侧节点时渲染该部门结构
 const handleNodeClick = (node: any) => {
-  const dept = findDeptById(deptOptions.value, node.id);
-  selectedDept.value = dept;
-  renderGoJsChart(dept);
-};
+  selectedDept.value = node
+  nextTick(() => renderG6ChartFromNode(node))
+}
 
-const renderGoJsChart = (rootDept: any) => {
-  const container = document.getElementById('gojs-container');
-  if (!container) return;
-
-  // 销毁旧图
-  if (diagram) {
-    diagram.div = null;
-    diagram.clear();
-  }
-
-  diagram = new go.Diagram('gojs-container', {
-    initialContentAlignment: go.Spot.Center,
-    layout: new go.TreeLayout({
-      angle: 90, // 从上到下
-      arrangement: go.TreeLayout.ArrangementHorizontal,
-      layerSpacing: 50,
-      nodeSpacing: 30
-    }),
-    'undoManager.isEnabled': true
-  });
-
-  // 节点样式模板
-  diagram.nodeTemplate = go.GraphObject.make(go.Node, 'Auto',
-    go.GraphObject.make(go.Shape, 'RoundedRectangle', {
-      fill: '#E3F2FD',
-      stroke: '#2196F3',
-      strokeWidth: 1.5
-    }),
-    go.GraphObject.make(go.Panel, 'Table',
-      { margin: 6 },
-      go.GraphObject.make(go.TextBlock, { row: 0, font: 'bold 14px sans-serif' },
-        new go.Binding('text', 'label')),
-      go.GraphObject.make(go.TextBlock, { row: 1, font: '12px sans-serif' },
-        new go.Binding('text', 'leader', val => val ? `主管：${val}` : '未设置主管')),
-      go.GraphObject.make(go.TextBlock, { row: 2, font: '12px sans-serif' },
-        new go.Binding('text', 'userCount', val => `部门人数：${val ?? 0}`))
-    )
-  );
-
-  diagram.linkTemplate = go.GraphObject.make(go.Link,
-    { routing: go.Link.Orthogonal, corner: 6 },
-    go.GraphObject.make(go.Shape)
-  );
-
-  // 构建节点数据
-  const buildGoData = (node: any, parentId?: string, result: any[] = []): any[] => {
-    const id = String(node.id);
-    const item: any = {
-      key: id,
-      label: node.label,
-      leader: node.leader || '',
-      userCount: node.userCount || 0
-    };
-    if (parentId) item.parent = parentId; // ✅ 仅非根节点设置 parent
-    result.push(item);
-    (node.children || []).forEach((child: any) => buildGoData(child, id, result));
-    return result;
-  };
-
-  const nodeDataArray = buildGoData(rootDept);
-  diagram.model = new go.TreeModel(nodeDataArray);
-};
-
-onMounted(() => {
-  getDeptTree();
-});
+// 页面加载后渲染公司完整结构
+onMounted(async () => {
+  await getDeptTree()
+  nextTick(() => renderG6ChartFromNode(buildTreeWithCompanyRoot()))
+})
 </script>
 
 <style scoped>
@@ -220,11 +227,5 @@ onMounted(() => {
   color: #666;
   font-size: 14px;
   margin-top: 4px;
-}
-.empty-placeholder {
-  text-align: center;
-  color: #999;
-  font-size: 14px;
-  padding: 40px;
 }
 </style>

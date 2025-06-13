@@ -20,9 +20,10 @@
     "url": "https://gitee.com/JavaLionLi/plus-ui.git"
   },
   "dependencies": {
-    "@antv/g6": "^5.0.48",
+    "@antv/g6": "4.7.14",
     "@element-plus/icons-vue": "2.3.1",
     "@highlightjs/vue-plugin": "2.1.0",
+    "@vue-flow/core": "^1.45.0",
     "@vueup/vue-quill": "1.2.0",
     "@vueuse/core": "12.7.0",
     "animate.css": "4.1.1",
