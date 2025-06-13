@@ -58,6 +58,7 @@ export interface SysHolidayForm {
   
   // 适用范围（部门/人员）
   selectedUserIds?: number[];
+  selectedUserNickNames?: string[];
 }
 
 /**
@@ -121,4 +122,9 @@ export interface PageResult<T> {
   pageNum: number;
   pageSize: number;
   pages: number;
+}
+
+export interface SysHolidayUser {
+  userId: number;
+  nickName: string;
 }

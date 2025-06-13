@@ -3,7 +3,6 @@
     <div class="action-section">
       <div class="action-buttons">
         <el-button type="primary" @click="handleAdd">+ 新增假期规则</el-button>
-        <el-button type="primary" @click="handleList" style="position: absolute; top: 30px; right: 40px;" v-hasPermi="['system:resign:add']">查看假期余额</el-button>
       </div>
     </div>
 
@@ -24,7 +23,11 @@
         </el-table-column>
         <el-table-column prop="holidayType" label="请假单位" min-width="120" />
         <el-table-column prop="timeType" label="计算请假时长方式" min-width="120" />
-        <el-table-column prop="balanceType" label="余额规则" min-width="120" />
+        <el-table-column prop="balanceType" label="余额规则" min-width="120">
+        <template #default="{ row }">
+          {{ row.balanceType === '不限额' ? '不限制余额' : row.balanceType }}
+        </template>
+      </el-table-column>
         <el-table-column prop="scopeType" label="适用范围" min-width="120" />
         <el-table-column min-width="220" fixed="right" >
           <template #header>
@@ -651,7 +654,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox, FormInstance } from 'element-plus'
 import { useRouter } from 'vue-router'
-import UserSelect from '@/components/UserSelect'
+import UserSelect from '@/components/UserSelect/index.vue'
 import { 
   listHoliday, 
   pageHoliday, 
@@ -668,30 +671,38 @@ import type {
   HolidayQuotaRule
 } from '@/api/system/holiday/types'
 
+const { proxy } = getCurrentInstance() as ComponentInternalInstance;
+
 // 用户选择相关
 const userSelectRef = ref<InstanceType<typeof UserSelect>>()
 const selectedUserList = ref<Array<{userId: number, nickName: string}>>([])
 const selectedUserIds = ref('')
+
 
 // 打开用户选择弹窗
 const openUserSelect = () => {
   userSelectRef.value?.open()
 }
 
-// 用户选择回调
+
 const userSelectCallBack = (data: Array<{userId: number, nickName: string}>) => {
   if (data && data.length > 0) {
     selectedUserList.value = data
-    selectedUserIds.value = selectedUserList.value.map((item) => item.userId).join(',')
+    // 同时更新表单中的ID和昵称数组
+    holidayForm.selectedUserIds = data.map(user => user.userId)
+    holidayForm.selectedUserNickNames = data.map(user => user.nickName)
   }
 }
 
 // 删除已选择的用户
 const handleCloseTag = (user: {userId: number, nickName: string}) => {
-  const userId = user.userId
-  const index = selectedUserList.value.findIndex((item) => item.userId === userId)
-  selectedUserList.value.splice(index, 1)
-  selectedUserIds.value = selectedUserList.value.map((item) => item.userId).join(',')
+  const index = selectedUserList.value.findIndex(item => item.userId === user.userId)
+  if (index !== -1) {
+    selectedUserList.value.splice(index, 1)
+    // 同步更新表单中的数组
+    holidayForm.selectedUserIds = selectedUserList.value.map(u => u.userId)
+    holidayForm.selectedUserNickNames = selectedUserList.value.map(u => u.nickName)
+  }
 }
 
 const router = useRouter()
@@ -719,7 +730,7 @@ const holidayData = ref<SysHolidayVO[]>([])
 // 假期表单
 const holidayForm = reactive<SysHolidayForm>({
   name: '',
-  balanceType: '',
+  balanceType: '不限额',
   // 每月发放相关字段
   monthlyIssueDate: undefined,
   monthlyQuotaRule: '',
@@ -814,22 +825,34 @@ const formRules = reactive({
 
 // 添加规则
 const addRule = (ruleType: 'socialAgeRules' | 'companyAgeRules') => {
+  // 确保数组存在
+  holidayForm[ruleType] = holidayForm[ruleType] || []
+  
   const rules = holidayForm[ruleType]
+  const maxCondition = rules.length > 0 
+    ? Math.max(...rules.map(r => r.condition))
+    : 0
   
-  // 获取当前最大condition值
-  const maxCondition = Math.max(...rules.map(r => r.condition))
+  // 使用Vue.set或直接赋值确保响应式
+  holidayForm[ruleType] = [
+    ...rules,
+    {
+      condition: maxCondition + 1,
+      value: 0,
+      type: 'gte'
+    }
+  ]
   
-  // 添加新规则（condition递增）
-  rules.push({
-    condition: maxCondition + 1,
-    value: 0,
-    type: 'gte' // 新增的都是≥条件
-  })
+  ElMessage.success(`已添加${ruleType === 'socialAgeRules' ? '工龄' : '司龄'}配额规则`)
 }
-
 // 移除规则
 const removeRule = (ruleType: 'socialAgeRules' | 'companyAgeRules', index: number) => {
+  if (holidayForm[ruleType].length <= 1) {
+    return ElMessage.warning('至少需要保留一条规则')
+  }
+  
   holidayForm[ruleType].splice(index, 1)
+  ElMessage.success('已移除规则')
 }
 
 // 筛选后的假期数据
@@ -941,18 +964,26 @@ const handleEditHoliday = async (row: SysHolidayVO) => {
   dialogTitle.value = '编辑假期规则'
   try {
     loading.value = true
-    // 获取假期详情
     const res = await getHoliday(row.holidayId)
     Object.assign(holidayForm, res.data)
     
-    // 获取适用范围的用户列表
     if (res.data.scopeType === '部门/人员') {
       const usersRes = await getHolidayScopeUsers(row.holidayId)
-      selectedUserList.value = usersRes.data
-      holidayForm.selectedUserIds = usersRes.data.map(user => user.userId)
+      console.log('用户数据:', usersRes.data) // 添加这行调试代码
+      
+      // 确保正确处理返回数据
+      selectedUserList.value = usersRes.data.map(user => ({
+        userId: user.userId,
+        nickName: user.nickName
+      }))
+      
+      // 同时更新表单中的ID和昵称数组
+      holidayForm.selectedUserIds = selectedUserList.value.map(u => u.userId)
+      holidayForm.selectedUserNickNames = selectedUserList.value.map(u => u.nickName)
     } else {
       selectedUserList.value = []
       holidayForm.selectedUserIds = []
+      holidayForm.selectedUserNickNames = []
     }
     
     dialogVisible.value = true
@@ -985,35 +1016,55 @@ const handleDeleteHoliday = (row: SysHolidayVO) => {
 // 确认保存假期
 const handleConfirm = async () => {
   try {
-    await holidayFormRef.value?.validate()
-    
-    // 设置选中的用户ID
-    holidayForm.selectedUserIds = selectedUserList.value.map(user => user.userId)
-    
-    if (dialogTitle.value === '新增假期规则') {
-      const res = await addHoliday(holidayForm)
-      if (res.data) {
-        ElMessage.success('新增成功')
-        dialogVisible.value = false
-        getHolidayList()
-      }
+    // 将选择的用户ID列表和昵称赋值给表单
+    if (holidayForm.scopeType === '部门/人员') {
+      holidayForm.selectedUserIds = selectedUserList.value.map(user => user.userId);
+      holidayForm.selectedUserNickNames = selectedUserList.value.map(user => user.nickName);
     } else {
-      const res = await updateHoliday(holidayForm)
-      if (res.data) {
-        ElMessage.success('更新成功')
-        dialogVisible.value = false
-        getHolidayList()
-      }
+      holidayForm.selectedUserIds = [];
+      holidayForm.selectedUserNickNames = [];
     }
+    
+    // 根据radio1的值设置balanceType
+    holidayForm.balanceType = radio1.value === '1' ? '不限额' : holidayForm.balanceType
+    
+    await holidayFormRef.value?.validate()
+    submitLoading.value = true
+    
+    const apiCall = dialogTitle.value === '新增假期规则' 
+      ? addHoliday(holidayForm) 
+      : updateHoliday(holidayForm)
+    
+    await apiCall
+    ElMessage.success('操作成功')
+    
+    dialogVisible.value = false
+    await getHolidayList()
+    window.dispatchEvent(new CustomEvent('holidayRulesUpdated'))
   } catch (error) {
-    console.error('提交失败:', error)
-    ElMessage.error(error.response?.data?.msg || '提交失败')
+    console.error('操作失败:', error)
+    ElMessage.error(error.response?.data?.msg || '操作失败')
+  } finally {
+    submitLoading.value = false
   }
 }
 
+const displayedHolidayData = computed(() => {
+  return holidayData.value.map(item => ({
+    ...item,
+    balanceType: item.balanceType === '不限额' ? '不限制余额' : item.balanceType
+  }))
+})
+
 const handleList = () => {
-  router.push('/system/holidayEdit/index')
-}
+  proxy.$tab.closePage(proxy.$route);
+  proxy.$router.push({
+    path: `/system/holidayEdit/index`,
+    query: {
+      type: 'add'
+    }
+  });
+};
 
 // 初始化数据
 onMounted(() => {

@@ -103,3 +103,10 @@ export const getHolidayScopeUsers = (holidayId: number): AxiosPromise<Array<{
     method: 'get'
   });
 };
+
+export function listHolidayUsers() {
+  return request({
+    url: '/system/holiday/allHolidayUsers',
+    method: 'get'
+  })
+}

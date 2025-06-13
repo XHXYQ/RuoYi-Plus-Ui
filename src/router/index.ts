@@ -191,7 +191,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         path: 'index',
         component: () => import('@/views/system/holiday/holidayEdit.vue'),
         name: 'holidayEdit',
-        meta: { title: '离职申请', activeMenu: '/system/holiday', noCache: true }
+        meta: { title: '假期余额', activeMenu: '/system/holiday', noCache: true }
       }
     ]
   },
@@ -206,6 +206,20 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/system/resign/resignEdit.vue'),
         name: 'resignEdit',
         meta: { title: '离职申请', activeMenu: '/system/resign', noCache: true }
+      }
+    ]
+  },
+  {
+    path: '/system/replacementEdit',
+    component: Layout,
+    hidden: true,
+    permissions: ['system:replacement:edit'],
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/system/replacement/replacementEdit.vue'),
+        name: 'replacementEdit',
+        meta: { title: '补卡申请', activeMenu: 'system/replacement', noCache: true }
       }
     ]
   },

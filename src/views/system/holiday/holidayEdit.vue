@@ -11,9 +11,8 @@
        
         
         <div class="action-buttons">
-          <el-button type="primary" plain>导出</el-button>
-          <el-button type="primary" @click="handleImport">导入花名册</el-button>
-          <el-button style="float: right" @click="goBack()">返回</el-button>
+          <el-button type="primary">导出</el-button>
+          <el-button type="primary">批量修改</el-button>
         </div>
       </div>
 
@@ -47,7 +46,17 @@
               {{ formatDate(row.startDate) }}
             </template>
           </el-table-column>
-          
+          <template v-for="column in holidayColumns" :key="column.prop">
+            <el-table-column 
+              :prop="column.prop" 
+              :label="column.label" 
+              :min-width="column.minWidth"
+            >
+              <template #default="{ row }">
+                {{ column.render ? column.render(row) : row[column.prop] }}
+              </template>
+            </el-table-column>
+          </template>
         </el-table>
         
         <!-- 分页 -->
@@ -64,119 +73,6 @@
         </div>
       </div>
 
-      <!-- 添加员工弹窗 -->
-      <el-dialog
-        v-model="addDialogVisible"
-        title="添加员工"
-        width="50%"
-        :close-on-click-modal="false"
-      >
-        <div class="avatar-upload">
-          <el-upload
-            class="avatar-uploader"
-            action="/api/upload"
-            :show-file-list="false"
-            :on-success="handleAvatarSuccess"
-            :before-upload="beforeAvatarUpload">
-            <img v-if="addForm.avatar" :src="addForm.avatar" class="avatar">
-            <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
-          </el-upload>
-          <div class="upload-tip">点击上传员工头像</div>
-        </div>
-        <el-form 
-          :model="addForm" 
-          label-width="100px"
-          :rules="formRules"
-          ref="addFormRef"
-        >
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="用户昵称" prop="nickName">
-                <el-input v-model="addForm.nickName" placeholder="请输入用户昵称" maxlength="30" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item v-if="addForm.userId == undefined" label="用户名称" prop="userName">
-                <el-input v-model="addForm.userName" placeholder="请输入用户名称" maxlength="30" />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="姓名" prop="name">
-                <el-input v-model="addForm.name" placeholder="请输入姓名" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="部门" prop="deptId">
-                <el-tree-select
-                  v-model="addForm.deptId"
-                  :data="deptOptions"
-                  :props="{ value: 'deptId', label: 'deptName', children: 'children' }"
-                  placeholder="选择部门"
-                  check-strictly
-                  style="width: 100%"
-                />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="职位" prop="position">
-                <el-input v-model="addForm.position" placeholder="请输入职位" />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="入职时间" prop="startDate">
-                <el-date-picker
-                  v-model="addForm.startDate"
-                  type="date"
-                  placeholder="选择入职日期"
-                  style="width: 100%"
-                  value-format="YYYY-MM-DD"
-                />
-              </el-form-item>
-            </el-col>
-          </el-row>
-          
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="员工类型" prop="employeeType">
-                <el-select v-model="addForm.employeeType" placeholder="请选择员工类型" style="width: 100%">
-                  <el-option label="全职" value="全职" />
-                  <el-option label="兼职" value="兼职" />
-                  <el-option label="实习" value="实习" />
-                  <el-option label="劳务派遣" value="劳务派遣" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="状态" prop="statusType">
-                <el-select v-model="addForm.statusType" placeholder="请选择状态" style="width: 100%">
-                  <el-option label="试用" value="试用" />
-                  <el-option label="正式" value="正式" />
-                  <el-option label="待离职" value="待离职" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          
-          <el-form-item label="手机号码" prop="phonenumber">
-            <el-input v-model="addForm.phonenumber" placeholder="请输入手机号码" />
-          </el-form-item>
-        </el-form>
-        
-        <template #footer>
-          <span class="dialog-footer">
-            <el-button @click="addDialogVisible = false">取消</el-button>
-            <el-button type="primary" @click="handleConfirmAdd" :loading="submitLoading">
-              添加员工到花名册
-            </el-button>
-          </span>
-        </template>
-      </el-dialog>
 
       <!-- 导入员工弹窗 -->
       <el-dialog
@@ -253,10 +149,76 @@ import {
   SysEmployeeVO,
   getEmployeeStats
 } from '@/api/system/employee'
+import { listHoliday, getHolidayScopeUsers } from '@/api/system/holiday'
 
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const router = useRouter()
 const searchTimer = ref<number>() // 防抖计时器
+const holidayRules = ref<any[]>([])
+const holidayColumns = ref<any[]>([])
+
+const userHolidays = ref<any[]>([])
+const getHolidayRules = async () => {
+  try {
+    const res = await listHoliday({
+      pageNum: 1,
+      pageSize: 100
+    })
+    
+    // 获取假期规则数据
+    const holidays = res.data?.rows || res.rows || []
+    
+    // 并行获取每个假期规则的关联用户
+    const holidaysWithUsers = await Promise.all(
+      holidays.map(async holiday => {
+        if (holiday.scopeType === '部门/人员') {
+          try {
+            const usersRes = await getHolidayScopeUsers(holiday.holidayId)
+            holiday.selectedUserIds = usersRes.data.map(u => u.userId)
+          } catch (error) {
+            console.error(`获取假期${holiday.name}的关联用户失败:`, error)
+            holiday.selectedUserIds = []
+          }
+        } else {
+          holiday.selectedUserIds = []
+        }
+        return holiday
+      })
+    )
+    
+    holidayRules.value = holidaysWithUsers
+    generateHolidayColumns()
+  } catch (error) {
+    console.error('获取假期规则失败:', error)
+    ElMessage.error('获取假期规则失败')
+  }
+}
+
+const generateHolidayColumns = () => {
+  holidayColumns.value = holidayColumns.value.filter(col => !col.isHolidayColumn);
+  
+  holidayRules.value.forEach(rule => {
+    holidayColumns.value.push({
+      prop: `holiday_${rule.holidayId}`,
+      label: rule.name,
+      minWidth: 120,
+      isHolidayColumn: true,
+      render: (row) => {
+        // 优先检查用户关联表中的余额类型
+        const userHoliday = userHolidays.value.find(
+          uh => uh.holidayId === rule.holidayId && uh.userId === row.userId
+        );
+        
+        if (userHoliday?.balanceType) {
+          return userHoliday.balanceType === '不限额' ? '不限制余额' : userHoliday.balanceType;
+        }
+        
+        // 默认返回假期规则的余额类型
+        return rule.balanceType === '不限额' ? '不限制余额' : rule.balanceType;
+      }
+    });
+  });
+}
 
 const goBack = () => {
   proxy.$tab.closePage(proxy.$route);
@@ -326,19 +288,6 @@ const statsData = reactive({
 // 当前选中的统计项
 const activeStat = ref('total')
 
-// 表单验证规则
-const formRules = reactive({
-  name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
-  deptId: [{ required: true, message: '请选择部门', trigger: 'change' }],
-  nickName: [{ required: true, message: '请输入用户昵称', trigger: 'blur' }],
-  userName: [{ required: true, message: '请输入用户名称', trigger: 'blur' }],
-  phonenumber: [
-    { required: true, message: '请输入手机号码', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
-  ],
-  employeeType: [{ required: true, message: '请选择员工类型', trigger: 'change' }],
-  statusType: [{ required: true, message: '请选择状态', trigger: 'change' }]
-})
 
 const addFormRef = ref()
 
@@ -354,96 +303,45 @@ const getDeptList = async () => {
 }
 
 // 获取员工列表
+// 修改getList方法，根据假期规则的应用范围过滤显示
 const getList = async () => {
   loading.value = true
   try {
     const res = await listEmployee(queryParams.value)
     
-    if (res && typeof res === 'object' && 'rows' in res) {
-      employeeData.value = res.rows.map(item => ({
-        ...item,
-        checked: false
-      }))
-      pagination.total = res.total || 0
-    } else if (Array.isArray(res)) {
-      employeeData.value = res.map(item => ({
-        ...item,
-        checked: false
-      }))
-      pagination.total = res.length
-    } else if (res?.data) {
-      const data = Array.isArray(res.data) ? res.data : []
-      employeeData.value = data.map(item => ({
-        ...item,
-        checked: false
-      }))
-      pagination.total = res.total || data.length
-    } else {
-      console.warn('意外的API响应格式:', res)
-      employeeData.value = []
-      pagination.total = 0
-    }
+    // 处理员工数据
+    employeeData.value = res.rows.map(employee => {
+      const employeeWithHolidays = {...employee}
+      
+      // 为每个假期规则处理显示
+      holidayRules.value.forEach(holiday => {
+        const holidayKey = `holiday_${holiday.holidayId}`
+        
+        // 判断是否显示该假期
+        if (holiday.scopeType === '全公司' || 
+            (holiday.scopeType === '部门/人员' && 
+             holiday.selectedUserIds && 
+             holiday.selectedUserIds.includes(employee.userId))) {
+          employeeWithHolidays[holidayKey] = 
+            holiday.balanceType === '不限额' ? '不限制余额' : holiday.balanceType
+        } else {
+          employeeWithHolidays[holidayKey] = '-'
+        }
+      })
+      
+      return employeeWithHolidays
+    })
     
+    pagination.total = res.total || 0
   } catch (error) {
     console.error('获取员工列表失败:', error)
-    ElMessage.error('获取员工列表失败: ' + (error as Error).message)
+    ElMessage.error('获取员工列表失败')
   } finally {
     loading.value = false
   }
 }
 
-// 统计项点击处理
-const handleStatClick = (statKey: string) => {
-  activeStat.value = statKey
-  queryParams.value.pageNum = 1
-  
-  switch(statKey) {
-    case 'total':
-      delete queryParams.value.employeeType
-      delete queryParams.value.statusType
-      break
-      
-    case 'fullTime':
-      queryParams.value.employeeType = '全职'
-      delete queryParams.value.statusType
-      break
-    case 'partTime':
-      queryParams.value.employeeType = '兼职'
-      delete queryParams.value.statusType
-      break
-    case 'intern':
-      queryParams.value.employeeType = '实习'
-      delete queryParams.value.statusType
-      break
-    case 'dispatch':
-      queryParams.value.employeeType = '劳务派遣'
-      delete queryParams.value.statusType
-      break
-    case 'noType':
-      queryParams.value.employeeType = ''
-      delete queryParams.value.statusType
-      break
-      
-    case 'probation':
-      queryParams.value.statusType = '试用'
-      delete queryParams.value.employeeType
-      break
-    case 'formal':
-      queryParams.value.statusType = '正式'
-      delete queryParams.value.employeeType
-      break
-    case 'pendingLeave':
-      queryParams.value.statusType = '待离职'
-      delete queryParams.value.employeeType
-      break
-    case 'noStatus':
-      queryParams.value.statusType = ''
-      delete queryParams.value.employeeType
-      break
-  }
-  
-  getList()
-}
+
 
 // 搜索员工
 const handleSearch = () => {
@@ -615,6 +513,15 @@ onMounted(() => {
   getDeptList()
   getList()
   loadStats()
+  getHolidayRules()
+  
+  window.addEventListener('holidayRulesUpdated', () => {
+    getHolidayRules()
+  })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('holidayRulesUpdated', () => {})
 })
 </script>
 
