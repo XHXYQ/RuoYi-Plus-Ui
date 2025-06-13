@@ -1,5 +1,6 @@
 <template>
   <div class="org-tree-container">
+    <!-- 顶部公司信息 -->
     <div class="company-header">
       <div class="company-label">公司：</div>
       <el-input v-model="companyName" class="company-input" placeholder="请输入公司名称" />
@@ -31,27 +32,11 @@
         </el-card>
       </el-col>
 
-      <!-- 右侧组织结构 -->
+      <!-- 右侧 GoJS 图表 -->
       <el-col :span="18">
         <el-card shadow="hover">
           <div v-if="selectedDept">
-            <div class="org-chart">
-              <el-tree
-                :data="[selectedDept]"
-                :props="{ label: 'label', children: 'children' }"
-                node-key="id"
-                default-expand-all
-                class="org-tree"
-              >
-                <template #default="{ node, data }">
-                  <div class="org-node">
-                    <div class="dept-name">{{ data.label }}</div>
-                    <div class="dept-meta">部门人数 {{ data.userCount || 0 }}</div>
-                    <div class="dept-meta">{{ data.leader ? `主管 ${data.leader}` : '未设置主管' }}</div>
-                  </div>
-                </template>
-              </el-tree>
-            </div>
+            <div id="gojs-container" style="width: 100%; height: 600px;"></div>
           </div>
           <div v-else class="empty-placeholder">请选择左侧部门查看结构</div>
         </el-card>
@@ -62,7 +47,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { ElAvatar, ElInput, ElTree, ElRow, ElCol, ElCard } from 'element-plus';
+import * as go from 'gojs';
 import api from '@/api/system/user';
 
 const companyName = ref('陈伟伦合伙人事务所');
@@ -71,6 +56,8 @@ const totalUserCount = ref(0);
 const deptOptions = ref<any[]>([]);
 const selectedDept = ref<any | null>(null);
 const deptTreeRef = ref();
+
+let diagram: go.Diagram;
 
 const getDeptTree = async () => {
   try {
@@ -91,7 +78,6 @@ const getDeptTree = async () => {
       return depts.map((dept: any) => {
         const children = dept.children ? processDeptTree(dept.children) : [];
         const totalCount = children.reduce((sum, child) => sum + (child.userCount || 0), 0) + (deptUserCount[dept.id] || 0);
-
         return {
           ...dept,
           userCount: totalCount,
@@ -120,7 +106,72 @@ const findDeptById = (list: any[], id: number): any | null => {
 };
 
 const handleNodeClick = (node: any) => {
-  selectedDept.value = findDeptById(deptOptions.value, node.id);
+  const dept = findDeptById(deptOptions.value, node.id);
+  selectedDept.value = dept;
+  renderGoJsChart(dept);
+};
+
+const renderGoJsChart = (rootDept: any) => {
+  const container = document.getElementById('gojs-container');
+  if (!container) return;
+
+  // 销毁旧图
+  if (diagram) {
+    diagram.div = null;
+    diagram.clear();
+  }
+
+  diagram = new go.Diagram('gojs-container', {
+    initialContentAlignment: go.Spot.Center,
+    layout: new go.TreeLayout({
+      angle: 90, // 从上到下
+      arrangement: go.TreeLayout.ArrangementHorizontal,
+      layerSpacing: 50,
+      nodeSpacing: 30
+    }),
+    'undoManager.isEnabled': true
+  });
+
+  // 节点样式模板
+  diagram.nodeTemplate = go.GraphObject.make(go.Node, 'Auto',
+    go.GraphObject.make(go.Shape, 'RoundedRectangle', {
+      fill: '#E3F2FD',
+      stroke: '#2196F3',
+      strokeWidth: 1.5
+    }),
+    go.GraphObject.make(go.Panel, 'Table',
+      { margin: 6 },
+      go.GraphObject.make(go.TextBlock, { row: 0, font: 'bold 14px sans-serif' },
+        new go.Binding('text', 'label')),
+      go.GraphObject.make(go.TextBlock, { row: 1, font: '12px sans-serif' },
+        new go.Binding('text', 'leader', val => val ? `主管：${val}` : '未设置主管')),
+      go.GraphObject.make(go.TextBlock, { row: 2, font: '12px sans-serif' },
+        new go.Binding('text', 'userCount', val => `部门人数：${val ?? 0}`))
+    )
+  );
+
+  diagram.linkTemplate = go.GraphObject.make(go.Link,
+    { routing: go.Link.Orthogonal, corner: 6 },
+    go.GraphObject.make(go.Shape)
+  );
+
+  // 构建节点数据
+  const buildGoData = (node: any, parentId?: string, result: any[] = []): any[] => {
+    const id = String(node.id);
+    const item: any = {
+      key: id,
+      label: node.label,
+      leader: node.leader || '',
+      userCount: node.userCount || 0
+    };
+    if (parentId) item.parent = parentId; // ✅ 仅非根节点设置 parent
+    result.push(item);
+    (node.children || []).forEach((child: any) => buildGoData(child, id, result));
+    return result;
+  };
+
+  const nodeDataArray = buildGoData(rootDept);
+  diagram.model = new go.TreeModel(nodeDataArray);
 };
 
 onMounted(() => {
@@ -132,24 +183,19 @@ onMounted(() => {
 .org-tree-container {
   padding: 20px;
   background: #f9f9f9;
-  font-family: 'Helvetica Neue', sans-serif;
 }
-
 .company-header {
   display: flex;
   align-items: center;
   margin-bottom: 12px;
 }
-
 .company-label {
   font-weight: bold;
   margin-right: 10px;
 }
-
 .company-input {
   width: 300px;
 }
-
 .org-info-card {
   display: flex;
   align-items: center;
@@ -159,51 +205,22 @@ onMounted(() => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
 }
-
 .org-logo {
   margin-right: 12px;
 }
-
 .org-text {
   display: flex;
   flex-direction: column;
 }
-
 .org-title {
   font-size: 18px;
   font-weight: 600;
 }
-
 .org-sub {
   color: #666;
   font-size: 14px;
   margin-top: 4px;
 }
-
-.org-chart {
-  background: white;
-  padding: 16px;
-  border-radius: 6px;
-}
-
-.org-node {
-  padding: 8px 12px;
-  background: #f6f9fc;
-  border-radius: 6px;
-  text-align: center;
-  width: 150px;
-}
-
-.dept-name {
-  font-weight: 500;
-  margin-bottom: 4px;
-}
-
-.dept-meta {
-  font-size: 12px;
-  color: #666;
-}
-
 .empty-placeholder {
   text-align: center;
   color: #999;

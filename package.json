@@ -20,6 +20,7 @@
     "url": "https://gitee.com/JavaLionLi/plus-ui.git"
   },
   "dependencies": {
+    "@antv/g6": "^5.0.48",
     "@element-plus/icons-vue": "2.3.1",
     "@highlightjs/vue-plugin": "2.1.0",
     "@vueup/vue-quill": "1.2.0",
@@ -31,6 +32,7 @@
     "echarts": "5.5.0",
     "element-plus": "2.8.8",
     "file-saver": "2.0.5",
+    "gojs": "^3.0.23",
     "highlight.js": "11.9.0",
     "image-conversion": "2.1.1",
     "js-cookie": "3.0.5",
