@@ -1,6 +1,5 @@
 <template>
   <div class="org-tree-container">
-    <!-- 顶部公司信息 -->
     <div class="company-header">
       <div class="company-label">公司：</div>
       <el-input v-model="companyName" class="company-input" placeholder="请输入公司名称" />
@@ -17,7 +16,6 @@
     </div>
 
     <el-row :gutter="20">
-      <!-- 左侧树形部门结构 -->
       <el-col :span="6">
         <el-card shadow="hover">
           <el-tree
@@ -32,7 +30,6 @@
         </el-card>
       </el-col>
 
-      <!-- 右侧图表 -->
       <el-col :span="18">
         <el-card shadow="hover">
           <div id="g6-container" style="width: 100%; height: 600px;"></div>
@@ -55,7 +52,7 @@ const deptTreeRef = ref()
 const selectedDept = ref<any | null>(null)
 let graph: any = null
 
-// 获取组织结构和用户数据
+// 获取组织结构树 + 计算人数
 const getDeptTree = async () => {
   try {
     const [deptRes, userRes] = await Promise.all([
@@ -91,16 +88,7 @@ const getDeptTree = async () => {
   }
 }
 
-// 构建以公司为根的树结构（初始图用）
-const buildTreeWithCompanyRoot = (): any => {
-  return {
-    id: 'root',
-    label: `${companyName.value}\n未设置主管\n部门人数：${totalUserCount.value}`,
-    children: deptOptions.value.map(buildSubTree)
-  }
-}
-
-// 构建任意节点为根的结构
+// 构建 G6 所需格式结构（从任意节点）
 const buildSubTree = (node: any): any => {
   return {
     id: String(node.id),
@@ -109,10 +97,16 @@ const buildSubTree = (node: any): any => {
   }
 }
 
-// 渲染图：传入根节点结构
+// 使用真实组织结构首个节点为 root
+const getInitialRootNode = (): any => {
+  if (!deptOptions.value.length) return null
+  return deptOptions.value[0] // ✅ 不再人为包装 root
+}
+
+// 渲染图表
 const renderG6ChartFromNode = (rootNode: any) => {
   const container = document.getElementById('g6-container')
-  if (!container) return
+  if (!container || !rootNode) return
 
   if (graph) {
     graph.destroy()
@@ -132,8 +126,8 @@ const renderG6ChartFromNode = (rootNode: any) => {
       type: 'rect',
       size: [200, 60],
       anchorPoints: [
-        [0.5, 0], // 顶部输入
-        [0.5, 1]  // 底部输出
+        [0.5, 0],
+        [0.5, 1]
       ],
       style: {
         fill: '#E3F2FD',
@@ -170,19 +164,22 @@ const renderG6ChartFromNode = (rootNode: any) => {
 
   graph.data(data)
   graph.render()
-  graph.fitCenter() // ✅ 让图表居中
+  graph.fitCenter() // ✅ 居中
 }
 
-// 点击左侧节点时渲染该部门结构
+// 点击左侧节点
 const handleNodeClick = (node: any) => {
   selectedDept.value = node
   nextTick(() => renderG6ChartFromNode(node))
 }
 
-// 页面加载后渲染公司完整结构
+// 初始化加载
 onMounted(async () => {
   await getDeptTree()
-  nextTick(() => renderG6ChartFromNode(buildTreeWithCompanyRoot()))
+  nextTick(() => {
+    const root = getInitialRootNode()
+    if (root) renderG6ChartFromNode(root)
+  })
 })
 </script>
 
