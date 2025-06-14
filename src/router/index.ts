@@ -224,6 +224,20 @@ export const dynamicRoutes: RouteRecordRaw[] = [
     ]
   },
   {
+    path: '/system/transferEdit',
+    component: Layout,
+    hidden: true,
+    permissions: ['system:transfer:edit'],
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/system/transfer/transferEdit.vue'),
+        name: 'transferEdit',
+        meta: { title: '调岗申请', activeMenu: 'system/transfer', noCache: true }
+      }
+    ]
+  },
+  {
     path: '/workflow/leaveEdit',
     component: Layout,
     hidden: true,
